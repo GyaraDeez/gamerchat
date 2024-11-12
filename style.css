@@ -1,9 +1,14 @@
 html {
   align:center;
+  background-color:#097fe1;
 }
 #send {
   width:30%;
 }
 #input {
   width:60%;
+  background-color:#09ade1;
+  border-style:double;
+  border-color:red;
+  border-width:3px;
 }
