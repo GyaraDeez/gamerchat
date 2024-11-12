@@ -6,6 +6,10 @@ html {
   width:30%;
   height:20%;
 }
+.chatbox {
+  height:75%;
+  width:90%
+}
 #input {
   width:60%;
   height:20%;
