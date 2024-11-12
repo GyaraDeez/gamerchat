@@ -8,7 +8,7 @@ html {
 #input {
   width:60%;
   background-color:#09ade1;
-  border-style:double;
-  border-color:red;
+  border-style:rounded;
+  border-color:gray;
   border-width:3px;
 }
