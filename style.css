@@ -4,9 +4,11 @@ html {
 }
 #send {
   width:30%;
+  height:10%;
 }
 #input {
   width:60%;
+  height:10%;
   background-color:#09ade1;
   border-style:rounded;
   border-color:gray;
