@@ -10,49 +10,54 @@ import session from 'express-session';
 import crypto from 'crypto';
 
 let userDb;
-try {
-  userDb = await open({
-    filename: 'user.db',
+let db;
+
+(async () => {
+    try {
+        userDb = await open({
+            filename: 'user.db',
     driver: sqlite3.Database
   });
-  await userDb.exec(`
-    CREATE TABLE IF NOT EXISTS users (
+        console.log('Connected to user database');
+        await userDb.exec(`
+            CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT UNIQUE,
-      password TEXT
+                username TEXT UNIQUE,
+                password TEXT
         )
     `);
-    console.log('Connected to user database');
+        console.log('User table created/verified');
 } catch (err) {
-    console.error('Failed to connect to user database', err);
+        console.error('Failed to connect to user database', err);
     process.exit(1);
   }
 
-let db;
-  try {
-  db = await open({
-    filename: 'chat.db',
-    driver: sqlite3.Database
-  });
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS messages (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER,
-      content TEXT,
-      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id)
-        )
-    `);
-    console.log('Connected to chat database');
-} catch (err) {
-    console.error('Failed to connect to chat database', err);
-    process.exit(1);
-  }
+    try {
+        db = await open({
+            filename: 'chat.db',
+            driver: sqlite3.Database
+        });
+        console.log('Connected to chat database');
+        await db.exec(`
+            CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                content TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        `);
+        console.log('Chat table created/verified');
+    } catch (err) {
+        console.error('Failed to connect to chat database', err);
+        process.exit(1);
+    }
+})();
 
 const app = express();
 const server = createServer(app);
 const io = new Server(server, {
-  connectionStateRecovery: {}
+    connectionStateRecovery: {}
 });
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -62,24 +67,24 @@ app.use(express.json());
 
 const secret = crypto.randomBytes(64).toString('hex');
 app.use(session({
-  secret: secret,
-  resave: false,
-  saveUninitialized: true,
+    secret: secret,
+    resave: false,
+    saveUninitialized: true,
     cookie: {
         secure: false
-  }
+    }
 }));
 
 const requireLogin = (req, res, next) => {
-  if (req.session.userId) {
-    next();
-    } else {
-    res.redirect('/login.html');
-    }
+    if (req.session.userId) {
+        next();
+        } else {
+            res.redirect('/login.html');
+        }
 };
 
 app.get('/', requireLogin, (req, res) => {
-  res.sendFile(join(__dirname, 'index.html'));
+    res.sendFile(join(__dirname, 'index.html'));
 });
 
 app.post('/signup', async (req, res) => {
@@ -88,106 +93,107 @@ app.post('/signup', async (req, res) => {
         password
     } = req.body;
     try {
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const result = await userDb.run('INSERT INTO users (username, password) VALUES (?, ?)', username, hashedPassword);
-    const user = await userDb.get('SELECT * FROM users WHERE username = ?', username);
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const result = await userDb.run('INSERT INTO users (username, password) VALUES (?, ?)', username, hashedPassword);
+        const user = await userDb.get('SELECT * FROM users WHERE username = ?', username);
         res.status(201).send({
             message: 'User created successfully',
             userId: user.id
         });
-  } catch (error) {
-    console.error("Signup error:", error);
+    } catch (error) {
+        console.error("Signup error:", error);
         res.status(500).json({
             message: 'Error creating user - server error'
-});
+  });
     }
-});
+  });
 
 app.post('/login', async (req, res) => {
     const {
         username,
         password
     } = req.body;
-  try {
-    const user = await userDb.get('SELECT * FROM users WHERE username = ?', username);
 
-    if (!user) {
+    try {
+        const user = await userDb.get('SELECT * FROM users WHERE username = ?', username);
+
+        if (!user) {
             return res.status(401).json({
                 message: 'Invalid credentials - user not found'
-            });
-    }
+});
+        }
 
-    const passwordMatch = await bcrypt.compare(password, user.password);
-    if (!passwordMatch) {
+        const passwordMatch = await bcrypt.compare(password, user.password);
+        if (!passwordMatch) {
             return res.status(401).json({
                 message: 'Invalid credentials - password incorrect'
-            });
-    }
-    req.session.userId = user.id;
-    req.session.username = user.username;
+});
+        }
+        req.session.userId = user.id;
+        req.session.username = user.username;
         res.status(200).json({
             message: 'Login successful',
             userId: user.id
         });
-  } catch (error) {
-    console.error("Login error:", error);
+    } catch (error) {
+        console.error("Login error:", error);
         res.status(500).json({
             message: 'Error logging in - server error'
-  });
+        });
     }
 });
 
 app.get('/logout', (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
-      console.error('Error destroying session:', err);
+    req.session.destroy((err) => {
+        if (err) {
+            console.error('Error destroying session:', err);
             res.status(500).json({
                 message: 'Logout failed'
-});
+            });
         } else {
             res.redirect('/login.html');
         }
-});
+    });
 });
 
 let connectionCount = 0;
 let connectionHandlerCount = 0;
 
 io.on('connection', async (socket) => {
-  connectionHandlerCount++;
-  console.log(`io.on('connection', ...) executed ${connectionHandlerCount} times`);
-  console.log(`New connection. Total connections: ${connectionCount}`);
-  console.log(`Socket ID: ${socket.id}`);
+    connectionHandlerCount++;
+    console.log(`io.on('connection', ...) executed ${connectionHandlerCount} times`);
+    console.log(`New connection. Total connections: ${connectionCount}`);
+    console.log(`Socket ID: ${socket.id}`);
 
-  const username = socket.handshake.headers.username;
-  const userId = socket.handshake.headers.userid;
+    const username = socket.handshake.headers.username;
+    const userId = socket.handshake.headers.userid;
 
-  console.log(`User ${username} (ID: ${userId}) connected.`);
+    console.log(`User ${username} (ID: ${userId}) connected.`);
 
-  socket.on('chat message', async (msg) => {
-    try {
-      console.log(`Saving message to database with userId: ${userId}`);
-      await db.run('INSERT INTO messages (user_id, content) VALUES (?, ?)', userId, msg);
+    socket.on('chat message', async (msg) => {
+        try {
+            console.log(`Saving message to database with userId: ${userId}`);
+            await db.run('INSERT INTO messages (user_id, content) VALUES (?, ?)`, userId, msg);
 
-      io.emit('chat message', {
-        content: msg,
-        username: username,
-        userId: userId,
-        timestamp: new Date()
-});
-    } catch (error) {
-      console.error('Error saving message:', error);
-    }
-  });
+            io.emit('chat message', {
+                content: msg,
+                username: username,
+                userId: userId,
+                timestamp: new Date()
+            });
+        } catch (error) {
+            console.error('Error saving message:', error);
+        }
+    });
 
-  socket.on('disconnect', () => {
-    connectionCount--;
-    console.log(`User ${username} (ID: ${userId}) disconnected. Total connections: ${connectionCount}`);
-  });
+    socket.on('disconnect', () => {
+        connectionCount--;
+        console.log(`User ${username} (ID: ${userId}) disconnected. Total connections: ${connectionCount}`);
+    });
 });
 
 const port = process.env.PORT || 3000;
 
 server.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+    console.log(`Server running at http://localhost:${port}`);
 });
