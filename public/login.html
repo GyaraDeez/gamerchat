@@ -43,7 +43,7 @@
         alert(data.message);
         // Store username and user ID in session storage
         sessionStorage.setItem('username', username);
-        sessionStorage.setItem('userId', data.userId); // Store the user ID from the server
+        sessionStorage.setItem('userId', data.userId); // Store user ID from server
         window.location.href = '/'; // Redirect to chat page
       } else {
         alert(data.message);
