@@ -78,8 +78,9 @@ app.post('/signup', async (req, res) => {
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
-    await userDb.run('INSERT INTO users (username, password) VALUES (?, ?)', username, hashedPassword);
-    res.status(201).send({ message: 'User created successfully' });
+    const result = await userDb.run('INSERT INTO users (username, password) VALUES (?, ?)', username, hashedPassword);
+    const userId = result.lastID; // Get the last inserted ID
+    res.status(201).send({ message: 'User created successfully', userId: userId });
   } catch (error) {
     console.error(error);
     res.status(500).send({ message: 'Error creating user' });
@@ -172,3 +173,4 @@ const port = process.env.PORT || 3000;
 server.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });
+
