@@ -294,7 +294,9 @@ io.on('connection', async (socket) => {
   socket.on('chat message', async (msg) => {
     // console.log(`Received message from ${username} (ID: ${userId}): ${msg}`);
 
+   // ... existing code ...
+
     try {
       // Save message to the database
       console.log(`Saving message to database with userId: ${userId}`);
-      await db.run('INSERT INTO messages (user_id, content) VALUES
+      await db.run('INSERT INTO messages (user_id, content) VALUES (?, ?)`, userId, msg);

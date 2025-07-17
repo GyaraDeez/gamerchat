@@ -43,13 +43,12 @@
         alert(data.message);
         // Store username and user ID in session storage
         sessionStorage.setItem('username', username);
-        // You'll need to send the user ID back from the server on login
-        // For now, I'm setting it to a dummy value.  Replace with actual user ID.
-        sessionStorage.setItem('userId', '1'); // Replace with actual user ID from server
+        sessionStorage.setItem('userId', data.userId); // Store the user ID from the server
         window.location.href = '/'; // Redirect to chat page
       } else {
         alert(data.message);
       }
     });
   </script>
+</body>
 </body>
