@@ -11,7 +11,7 @@
   <div class="chat-container">
     <header>
       <h1>Socket.IO Chat</h1>
-      <a href="/logout">Logout</a>
+      <a href="https://gamerchat.vercel.app/login.html">Logout</a> <!-- Updated Logout Link -->
     </header>
 
     <ul id="messages"></ul>
@@ -102,7 +102,7 @@
   }
 
   // Listen for logout link click
-  const logoutLink = document.querySelector('a[href="/logout"]');
+  const logoutLink = document.querySelector('a[href="https://gamerchat.vercel.app/login.html"]');
   if (logoutLink) {
     logoutLink.addEventListener('click', (e) => {
       e.preventDefault(); // Prevent default navigation
@@ -114,6 +114,8 @@
   }
 
   // Clean up socket when the page is unloaded (e.g., user navigates away)
+  window.addEventListener('beforeunload', cleanupSocket);
+</script>
 </body>
 
 </html>
