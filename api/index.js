@@ -10,34 +10,46 @@ import session from 'express-session'; // Import express-session
 import crypto from 'crypto';
 
 // Use user.db for user authentication
-const userDb = await open({
-  filename: 'user.db',
-  driver: sqlite3.Database
-});
+let userDb;
+try {
+  userDb = await open({
+    filename: 'user.db',
+    driver: sqlite3.Database
+  });
 
-// Create users table in user.db
-await userDb.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE,
-    password TEXT
-  );
-`);
+  // Create users table in user.db
+  await userDb.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT UNIQUE,
+      password TEXT
+    );
+  `);
+  } catch (error) {
+  console.error("Database initialization error:", error);
+  process.exit(1); // Exit if database fails to initialize
+  }
 
-const db = await open({
-  filename: 'chat.db',
-  driver: sqlite3.Database
-});
+let db;
+  try {
+  db = await open({
+    filename: 'chat.db',
+    driver: sqlite3.Database
+  });
 
-await db.exec(`
-  CREATE TABLE IF NOT EXISTS messages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER,
-    content TEXT,
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-  );
-`);
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      content TEXT,
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `);
+  } catch (error) {
+  console.error("Chat database initialization error:", error);
+  process.exit(1); // Exit if database fails to initialize
+  }
 
 const app = express();
 const server = createServer(app);
@@ -63,9 +75,9 @@ app.use(session({
 const requireLogin = (req, res, next) => {
   if (req.session.userId) {
     next(); // User is logged in, proceed
-  } else {
+    } else {
     res.redirect('/login.html'); // Redirect to login page
-  }
+    }
 };
 
 app.get('/', requireLogin, (req, res) => {
@@ -75,15 +87,16 @@ app.get('/', requireLogin, (req, res) => {
 // Signup endpoint
 app.post('/signup', async (req, res) => {
   const { username, password } = req.body;
-
-  try {
+    try {
     const hashedPassword = await bcrypt.hash(password, 10);
     const result = await userDb.run('INSERT INTO users (username, password) VALUES (?, ?)', username, hashedPassword);
-    const userId = result.lastID; // Get the last inserted ID
-    res.status(201).send({ message: 'User created successfully', userId: userId });
+     // Get the last inserted ID
+    const user = await userDb.get('SELECT * FROM users WHERE username = ?', username);
+
+    res.status(201).send({ message: 'User created successfully', userId: user.id });
   } catch (error) {
-    console.error(error);
-    res.status(500).send({ message: 'Error creating user' });
+    console.error("Signup error:", error);
+    res.status(500).json({ message: 'Error creating user - server error' });
   }
 });
 
@@ -94,37 +107,33 @@ app.post('/login', async (req, res) => {
   try {
     const user = await userDb.get('SELECT * FROM users WHERE username = ?', username);
 
-    if (user) {
-      const passwordMatch = await bcrypt.compare(password, user.password);
-      if (passwordMatch) {
-        // Passwords match
-        req.session.userId = user.id; // Store user ID in session
-        req.session.username = user.username; // Store username in session
-        res.status(200).send({ message: 'Login successful', userId: user.id });
-      } else {
-        // Passwords don't match
-        res.status(401).send({ message: 'Invalid credentials' });
-      }
-    } else {
-      // User not found
-      res.status(401).send({ message: 'Invalid credentials' });
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid credentials - user not found' });
     }
+
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    if (!passwordMatch) {
+      return res.status(401).json({ message: 'Invalid credentials - password incorrect' });
+    }
+    req.session.userId = user.id; // Store user ID in session
+    req.session.username = user.username; // Store username in session
+    res.status(200).json({ message: 'Login successful', userId: user.id });
   } catch (error) {
-    console.error(error);
-    res.status(500).send({ message: 'Error logging in' });
+    console.error("Login error:", error);
+    res.status(500).json({ message: 'Error logging in - server error' });
   }
-});
+  });
 
 // Logout endpoint
 app.get('/logout', (req, res) => {
   req.session.destroy((err) => {
     if (err) {
       console.error('Error destroying session:', err);
-      res.status(500).send({ message: 'Logout failed' });
+      res.status(500).json({ message: 'Logout failed' });
     } else {
       res.redirect('/login.html');
     }
-  });
+});
 });
 
 let connectionCount = 0; // Track connection count
@@ -148,7 +157,7 @@ io.on('connection', async (socket) => {
     try {
       // Save message to the database
       console.log(`Saving message to database with userId: ${userId}`);
-      await db.run('INSERT INTO messages (user_id, content) VALUES (?, ?)`, userId, msg);
+      await db.run('INSERT INTO messages (user_id, content) VALUES (?, ?)', userId, msg);
 
       // Emit the message to all connected clients
       io.emit('chat message', {
@@ -156,11 +165,11 @@ io.on('connection', async (socket) => {
         username: username,
         userId: userId,
         timestamp: new Date()
-      });
-  } catch (error) {
-      console.error('Error saving message:', error);
-  }
 });
+    } catch (error) {
+      console.error('Error saving message:', error);
+    }
+  });
 
   socket.on('disconnect', () => {
     connectionCount--;
@@ -173,4 +182,3 @@ const port = process.env.PORT || 3000;
 server.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });
-
