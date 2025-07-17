@@ -1,0 +1,9 @@
+{
+  "name": "Gamerchat",
+  "version": "0.0.1",
+  "description": "Gamerchat made by GamerNation12 and GamerDoop7",
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
