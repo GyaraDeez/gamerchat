@@ -93,28 +93,28 @@
       }
     }
 
-    // Check if user is logged in and initialize socket
-    if (!sessionStorage.getItem('username')) {
-      cleanupSocket(); // Ensure socket is cleaned up
-      window.location.href = '/login.html';
-    } else {
-      initializeSocket();
-    }
+     // Check if user is logged in and initialize socket
+  if (!sessionStorage.getItem('username')) {
+    cleanupSocket(); // Ensure socket is cleaned up
+    window.location.href = 'https://gamerchat.vercel.app/login.html'; // Updated URL
+  } else {
+    initializeSocket();
+  }
 
-    // Listen for logout link click
-    const logoutLink = document.querySelector('a[href="/logout"]');
-    if (logoutLink) {
-      logoutLink.addEventListener('click', (e) => {
-        e.preventDefault(); // Prevent default navigation
-        cleanupSocket(); // Clean up socket
-        sessionStorage.removeItem('username'); // Clear session storage
-        sessionStorage.removeItem('userId');
-        window.location.href = '/login.html'; // Redirect to login page
-      });
-    }
+  // Listen for logout link click
+  const logoutLink = document.querySelector('a[href="/logout"]');
+  if (logoutLink) {
+    logoutLink.addEventListener('click', (e) => {
+      e.preventDefault(); // Prevent default navigation
+      cleanupSocket(); // Clean up socket
+      sessionStorage.removeItem('username'); // Clear session storage
+      sessionStorage.removeItem('userId');
+      window.location.href = 'https://gamerchat.vercel.app/login.html'; // Updated URL
+    });
+  }
 
-    // Clean up socket when the page is unloaded (e.g., user navigates away)
-    window.addEventListener('beforeunload', cleanupSocket);
+  // Clean up socket when the page is unloaded (e.g., user navigates away)
+  window.addEventListener('beforeunload', cleanupSocket);
   </script>
 </body>
 
