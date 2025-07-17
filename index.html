@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Socket.IO chat</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div class="chat-container">
+    <header>
+      <h1>Socket.IO Chat</h1>
+      <a href="/logout">Logout</a>
+    </header>
+
+    <ul id="messages"></ul>
+
+    <form id="form" action="">
+      <input id="input" autocomplete="off" placeholder="Type your message" /><button>Send</button>
+    </form>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    let socket = null; // Declare socket outside to prevent multiple instantiations
+    let form = null, input = null, messages = null; // Declare these variables in the outer scope
+
+    function initializeSocket() {
+      if (!socket || socket.disconnected) {
+        socket = io({
+          auth: {
+            serverOffset: 0
+          },
+          ackTimeout: 10000,
+          retries: 3,
+          transportOptions: {
+            polling: {
+              extraHeaders: {
+                username: sessionStorage.getItem('username'),
+                userid: sessionStorage.getItem('userId')
+              }
+            }
+          }
+        });
+
+        form = document.getElementById('form');
+        input = document.getElementById('input');
+        messages = document.getElementById('messages');
+
+        const submitHandler = (e) => {
+          e.preventDefault();
+          if (input.value) {
+            const msg = input.value;
+            const username = sessionStorage.getItem('username');
+            const userId = sessionStorage.getItem('userId');
+
+            // Add message to the chat window immediately
+            const item = document.createElement('li');
+            item.innerHTML = `<b>${username}:</b> ${msg}`;
+            messages.appendChild(item);
+            window.scrollTo(0, document.body.scrollHeight);
+
+            socket.emit('chat message', msg);
+            input.value = '';
+          }
+        };
+
+        const messageHandler = (data) => {
+          const item = document.createElement('li');
+          item.innerHTML = `<b>${data.username}:</b> ${data.content}`;
+          messages.appendChild(item);
+          window.scrollTo(0, document.body.scrollHeight);
+        };
+
+        form.addEventListener('submit', submitHandler);
+        socket.on('chat message', messageHandler);
+      }
+    }
+
+    function cleanupSocket() {
+      if (socket) {
+        // Remove event listeners
+        if (form && form.submitHandler) {
+          form.removeEventListener('submit', form.submitHandler);
+        }
+        if (socket.messageHandler) {
+          socket.off('chat message', socket.messageHandler);
+        }
+
+        socket.disconnect();
+        socket = null;
+      }
+    }
+
+    // Check if user is logged in and initialize socket
+    if (!sessionStorage.getItem('username')) {
+      cleanupSocket(); // Ensure socket is cleaned up
+      window.location.href = '/login.html';
+    } else {
+      initializeSocket();
+    }
+
+    // Listen for logout link click
+    const logoutLink = document.querySelector('a[href="/logout"]');
+    if (logoutLink) {
+      logoutLink.addEventListener('click', (e) => {
+        e.preventDefault(); // Prevent default navigation
+        cleanupSocket(); // Clean up socket
+        sessionStorage.removeItem('username'); // Clear session storage
+        sessionStorage.removeItem('userId');
+        window.location.href = '/login.html'; // Redirect to login page
+      });
+    }
+
+    // Clean up socket when the page is unloaded (e.g., user navigates away)
+    window.addEventListener('beforeunload', cleanupSocket);
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Login</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div class="chat-container">
+    <h1>Login</h1>
+    <form id="loginForm">
+      <label for="username">Username:</label><br>
+      <input type="text" id="username" name="username"><br>
+      <label for="password">Password:</label><br>
+      <input type="password" id="password" name="password"><br><br>
+      <button type="submit">Login</button>
+    </form>
+    <button onclick="location.href='/signup.html'">Sign Up</button>
+  </div>
+  <script>
+    const loginForm = document.getElementById('loginForm');
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      const response = await fetch('/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          username,
+          password
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert(data.message);
+        // Store username and user ID in session storage
+        sessionStorage.setItem('username', username);
+        // You'll need to send the user ID back from the server on login
+        // For now, I'm setting it to a dummy value.  Replace with actual user ID.
+        sessionStorage.setItem('userId', '1'); // Replace with actual user ID from server
+        window.location.href = '/'; // Redirect to chat page
+      } else {
+        alert(data.message);
+      }
+    });
+  </script>
+</body>
