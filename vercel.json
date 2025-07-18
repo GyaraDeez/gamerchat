@@ -1,10 +1,3 @@
 {
-  "runtime": "nodejs16",
-  "routes": [
-    { "src": "/index.html", "dest": "/public/index.html" },
-    { "src": "/", "dest": "/public/index.html" },
-    { "src": "/api/(.*)", "dest": "/api/index.js" },
-    { "src": "/login", "dest": "/api/index.js" },
-    { "src": "/signup", "dest": "/api/index.js" }
-
+  "runtime": "nodejs16"
 }
