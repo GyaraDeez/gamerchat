@@ -72,21 +72,11 @@ app.get('/', requireLogin, (req, res) => {
 
 // Signup endpoint
 app.post('/signup', async (req, res) => {
-  const { username, password } = req.body;
-
   try {
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const userDoc = {
-      username: username,
-      password: hashedPassword,
-    };
-
-    const insertResult = await collection.insert(username, userDoc); // Use username as the document ID
-
-    res.status(201).json({ message: 'User created successfully', userId: username }); // Use username as userId
+    res.status(200).json({ message: 'Signup route reached successfully' });
   } catch (error) {
     console.error("Signup error:", error);
-    res.status(500).json({ message: 'Error creating user - server error' });
+    res.status(500).json({ message: 'Error in signup route' });
   }
 });
 
@@ -94,22 +84,32 @@ app.post('/signup', async (req, res) => {
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
 
+  console.log(`Login attempt for user: ${username}`); // Log incoming request
+
   try {
+    console.log(`Attempting to retrieve user from database: ${username}`); // Log database query
     const getResult = await collection.get(username);
     const user = getResult.content;
 
     if (!user) {
+      console.log(`User not found in database: ${username}`); // Log user not found
       return res.status(401).json({ message: 'Invalid credentials - user not found' });
     }
 
+    console.log(`User found in database: ${username}`); // Log user found
+
     const passwordMatch = await bcrypt.compare(password, user.password);
+    console.log(`Password comparison result: ${passwordMatch}`); // Log password comparison result
+
     if (!passwordMatch) {
       return res.status(401).json({ message: 'Invalid credentials - password incorrect' });
     }
 
     req.session.userId = username; // Store username in session
     req.session.username = username; // Store username in session
+    console.log(`Session created for user: ${username}`); // Log session creation
     res.status(200).json({ message: 'Login successful', userId: username }); // Use username as userId
+    console.log(`Login successful for user: ${username}`); // Log successful login
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ message: 'Error logging in - server error' });
